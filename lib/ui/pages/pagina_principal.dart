@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/cabecera_app.dart';
-import '../widgets/pie_navegacion.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_application_1/domain/viewmodels/inicio_viewmodel.dart';
+import 'package:flutter_application_1/ui/widgets/cabecera_app.dart';
+import 'package:flutter_application_1/ui/widgets/pie_navegacion.dart';
 
-import 'categorias_page.dart' as categorias;
-import 'carrito_page.dart' as carrito;
-import 'pedidos_page.dart' as pedidos;
-import 'perfil_page.dart' as perfil;
+import 'producto_seleccionado_page.dart';
+import 'categorias_page.dart';
+import 'carrito_page.dart';
+import 'pedidos_page.dart';
+import 'perfil_page.dart';
 
 class PaginaPrincipal extends StatefulWidget {
   const PaginaPrincipal({super.key});
@@ -15,142 +18,138 @@ class PaginaPrincipal extends StatefulWidget {
 }
 
 class _PaginaPrincipalState extends State<PaginaPrincipal> {
-  int _indiceActual = 0;
-
-  final List<String> _titulos = const [
-    "Inicio",
-    "Categorías",
-    "Carrito",
-    "Pedidos",
-    "Perfil",
-  ];
-
-  final List<Widget> _paginas = [];
-
   @override
   void initState() {
     super.initState();
-    _paginas.addAll([
-      _buildInicio(), // Vista de inicio
-      const categorias.CategoriasPage(),
-      const carrito.CarritoPage(),
-      const pedidos.PedidosPage(),
-      const perfil.PerfilPage(),
-    ]);
-  }
 
-  Widget _buildInicio() {
-    final List<Map<String, dynamic>> productos = [
-      {
-        "name": "Zapatillas Urbanas",
-        "imageUrl":
-            "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=150&q=80",
-        "originalPrice": 180.0,
-        "discountPrice": 120.0,
-      },
-      {
-        "name": "Audífonos Bluetooth",
-        "imageUrl":
-            "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=150&q=80",
-        "originalPrice": 150.0,
-        "discountPrice": 99.0,
-      },
-      {
-        "name": "Polera Oversize",
-        "imageUrl":
-            "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=150&q=80",
-        "originalPrice": 100.0,
-        "discountPrice": 75.0,
-      },
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Productos en rebaja",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: ListView.separated(
-              itemCount: productos.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final product = productos[index];
-                final String name = product["name"] as String;
-                final String imageUrl = product["imageUrl"] as String;
-                final double originalPrice = product["originalPrice"] as double;
-                final double discountPrice = product["discountPrice"] as double;
-                final double discountPercent =
-                    ((originalPrice - discountPrice) / originalPrice) * 100;
-
-                return Card(
-                  elevation: 3,
-                  child: ListTile(
-                    leading: Image.network(
-                      imageUrl,
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                    ),
-                    title: Text(name),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Antes: S/ ${originalPrice.toStringAsFixed(2)}",
-                          style: const TextStyle(
-                            decoration: TextDecoration.lineThrough,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          "Ahora: S/ ${discountPrice.toStringAsFixed(2)}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                        Text(
-                          "${discountPercent.toStringAsFixed(0)}% OFF",
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      // Acción al hacer tap (opcional)
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InicioViewModel>(context, listen: false).cargarProductos();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CabeceraApp(titulo: _titulos[_indiceActual]),
-      body: _paginas[_indiceActual],
+      appBar: const PreferredSize(
+        preferredSize: Size.fromHeight(60),
+        child: CabeceraApp(titulo: 'Mi Tienda'),
+      ),
       bottomNavigationBar: PieNavegacion(
-        indiceActual: _indiceActual,
+        indiceActual: 0,
         onTap: (index) {
-          setState(() {
-            _indiceActual = index;
-          });
+          if (index == 0) return;
+
+          Widget destino;
+          switch (index) {
+            case 1:
+              destino = const CategoriasPage();
+              break;
+            case 2:
+              destino = const CarritoPage();
+              break;
+            case 3:
+              destino = const PedidosPage();
+              break;
+            case 4:
+              destino = const PerfilPage();
+              break;
+            default:
+              return;
+          }
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => destino),
+          );
+        },
+      ),
+      body: Consumer<InicioViewModel>(
+        builder: (context, viewModel, child) {
+          if (viewModel.cargando) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (viewModel.error != null) {
+            return Center(child: Text(viewModel.error!));
+          }
+
+          if (viewModel.productos.isEmpty) {
+            return const Center(child: Text('No hay productos disponibles.'));
+          }
+
+          return GridView.builder(
+            padding: const EdgeInsets.all(10),
+            physics: const BouncingScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: viewModel.productos.length,
+            itemBuilder: (context, index) {
+              final producto = viewModel.productos[index];
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ProductoSeleccionadoPage(productoId: producto.id),
+                    ),
+                  );
+                },
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12)),
+                          child: Image.network(
+                            producto.imagenUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.image_not_supported),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(6.0),
+                        child: Text(
+                          producto.nombre,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                        child: Text(
+                          'S/ ${producto.precio.toStringAsFixed(2)}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
         },
       ),
     );
